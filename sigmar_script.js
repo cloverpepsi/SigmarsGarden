@@ -9,6 +9,8 @@ let atom_field;
 
 let selected_hexes = [];
 
+let hovered_atom = null;
+
 let gamemode;
 
 class AtomType {
@@ -21,11 +23,11 @@ class AtomType {
     glyph_path(){
         return './symbols/'+this.name+".svg"
     }
-    render(position,selectable=true){
+    render(position,selectable=true,background="#DDDDDD"){
         
-        let color = selectable ? this.color : blendColors(this.color,"#FFFFFF",13/16);
+        let color = selectable ? this.color : blendColors(this.color,background,10/16);
         drawCircle(position[0],position[1],33,color)
-        ctx.globalAlpha = selectable ? 1 : 5/16;
+        ctx.globalAlpha = selectable ? 1 : 6/16;
         ctx.drawImage(this.img, position[0]-30, position[1]-30)
         ctx.globalAlpha = 1;
     }
@@ -42,12 +44,13 @@ function base64ToBitString(base64) {
 }
 
 class Variant {
-    constructor(hex_compat = null, atom_compat = null, is_selectable = null, board_gen = null, post_click = null){
+    constructor(hex_compat = null, atom_compat = null, is_selectable = null, board_gen = null, post_click = null, info_board = null){
         this.hex_compat = hex_compat
         this.atom_compat = atom_compat
         this.is_selectable = is_selectable
         this.board_gen = board_gen
         this.post_click = post_click
+        this.info_board = info_board
     }
 }
 
@@ -77,6 +80,17 @@ function drawCircle(x,y,r,color){
     ctx.arc(x,y,r, 0, 2*Math.PI);
     ctx.fillStyle = color;
     ctx.fill();
+}
+
+function rgbToHex(rgb) {
+    const rgbValues = rgb.match(/\d+/g);
+    if (!rgbValues) return '#ffffff';
+    
+    const r = parseInt(rgbValues[0]);
+    const g = parseInt(rgbValues);
+    const b = parseInt(rgbValues[2]);
+
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
 function hex_selected(r,q,hexlist=selected_hexes){
@@ -117,13 +131,13 @@ function hex_equals(h1, h2){
     return h1[0] == h2[0] && h1[1] == h2[1]
 }
 
-const SALT = new AtomType("salt", "#aa9988")
+const SALT = new AtomType("salt", "#bbaa99")
 const FIRE = new AtomType("fire", "#ee5533")
 const EARTH = new AtomType("earth", "#55bb55")
 const AIR = new AtomType("air", "#99ccff")
 const WATER = new AtomType("water", "#3399aa")
 const VITAE = new AtomType("vitae", "#eeaaaa")
-const MORS = new AtomType("mors", "#333333")
+const MORS = new AtomType("mors", "#444444")
 const QS = new AtomType("quicksilver", "#888899")
 const LEAD = new AtomType("lead", "#445555")
 const TIN = new AtomType("tin", "#666655")
@@ -137,6 +151,22 @@ const METALS = [LEAD, TIN, IRON, COPPER, SILVER, GOLD]
 const CARDINALS = [SALT, FIRE, EARTH, AIR, WATER]
 
 const ADJACENTS = [[0,1],[-1,1],[-1,0],[0,-1],[1,-1],[1,0]]
+
+function get_atomtype(s){
+    for (const a of ATOMTYPES){ if (s == a.name) {return a}}
+    return SALT
+}
+
+function atom_counts(a){
+
+    let count = 0
+    for (let r = 0; r < 11; r++){
+        for (let q = 0; q < 11; q++){   
+            if (atom_field[r][q] == a) {count++;}
+        }   
+    }
+    return count
+}
 
 function hexIsChoosable(h, marbleHexes){
     let valids = []
@@ -363,6 +393,65 @@ const VANILLA = new Variant(
                 myGameArea.drawAtoms();
             }
         }
+    },
+
+    info_board = function(x=null, y=null){
+
+        let w_offset = Math.round(WIDTH/2);
+        let h_offset = 900
+
+        let atom_positions = {
+            salt: [-260, 0],
+            air: [-180, 0],
+            fire: [-100,0],
+            water: [-20, 0],
+            earth: [60,0],
+            vitae: [180,0],
+            mors: [260,0],
+
+            quicksilver: [-240, 90],
+            lead: [-160, 90],
+            tin: [-80, 90],
+            iron: [0, 90],
+            copper: [80, 90],
+            silver: [160, 90],
+            gold: [240, 90]
+        }
+
+        if (x != null){
+            for (const [key, value] of Object.entries(atom_positions)) {
+                let distanceX = x - value[0] - w_offset;
+                let distanceY = y - value[1] - h_offset;
+                let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+                let a = get_atomtype(key);
+                if (distance <= 33) {
+                    if (hovered_atom == a) { hovered_atom = null; }
+                    else { hovered_atom = a; }
+                }
+            }
+        }
+
+        else {
+            for (const [key, value] of Object.entries(atom_positions)) {
+                let a = get_atomtype(key);
+                let count = atom_counts(a);
+                let pos = [value[0]+w_offset, value[1]+h_offset];
+
+                if (hovered_atom == a) { drawCircle(pos[0], pos[1], 40, "#FFD")}
+
+                a.render(pos,count>0,BACKGROUND);
+
+                ctx.font = "30px Arial";
+                ctx.fillStyle = "white";
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = BACKGROUND;
+                if (!METALS.includes(a)){
+                    if (CARDINALS.includes(a) && count%2 == 1) { ctx.fillStyle = "#FF5555"; }
+                    ctx.strokeText(count,pos[0]+20, pos[1]+40);
+                    ctx.fillText(count, pos[0]+20, pos[1]+40);
+                }
+            }
+        }
     }
 
 )
@@ -377,6 +466,7 @@ function screenPosition(r, q, canvas){
 
 const canvas = document.createElement("canvas")
 const ctx = canvas.getContext("2d");
+const BACKGROUND = "#555555"
 
 let myGameArea = {
     start : function() {
@@ -385,7 +475,7 @@ let myGameArea = {
         selected_hexes = []
 
         canvas.width = WIDTH;
-        canvas.height = HEIGHT+150;
+        canvas.height = HEIGHT+200;
         document.body.insertBefore(canvas, document.body.childNodes[0]);
         this.clear();
         this.drawAtoms();
@@ -429,26 +519,13 @@ let myGameArea = {
                     let currentAtom = atom_field[r][q];
                     let atomPosition = screenPosition(r, q, canvas);
 
-                    if (hex_selected(r,q)) { drawCircle(atomPosition[0], atomPosition[1], 40, "#FFD")}
+                    if (hex_selected(r,q) || currentAtom == hovered_atom) { drawCircle(atomPosition[0], atomPosition[1], 40, "#FFD")}
                     
                     currentAtom.render(atomPosition,gamemode.is_selectable([r,q]))
                 }
             }   
         }
-
-        SALT.render(screenPosition(11.66,-0.33))
-        AIR.render(screenPosition(11.66,0.66))
-        FIRE.render(screenPosition(11.66,1.66))
-        WATER.render(screenPosition(11.66,2.66))
-        EARTH.render(screenPosition(11.66,3.66))
-
-        QS.render(screenPosition(12.8,-1.9))
-        LEAD.render(screenPosition(12.8,-0.9))
-        TIN.render(screenPosition(12.8,.1))
-        IRON.render(screenPosition(12.8,1.1))
-        COPPER.render(screenPosition(12.8,2.1))
-        SILVER.render(screenPosition(12.8,3.1))
-        GOLD.render(screenPosition(12.8,4.1))
+        gamemode.info_board()
 
     }
 }
@@ -485,6 +562,8 @@ canvas.addEventListener('click', function(event){
     if (location != null){
         gamemode.post_click(location)
     }
+    gamemode.info_board(mouseX, mouseY)
+    myGameArea.drawAtoms()
 
 }, false)
 
