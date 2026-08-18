@@ -11,12 +11,15 @@ let selected_hexes = [];
 
 let hovered_atom = null;
 
+let wincount = 0;
+
 let gamemode;
 
 class AtomType {
-    constructor(name = null, color = "#000"){
+    constructor(name = null, color = "#000", size=33){
         this.name = name
         this.color = color
+        this.size = size
         this.img = new Image();
         this.img.src = './symbols/'+name+".svg"
     }
@@ -26,7 +29,7 @@ class AtomType {
     render(position,selectable=true,background="#DDDDDD"){
         
         let color = selectable ? this.color : blendColors(this.color,background,10/16);
-        drawCircle(position[0],position[1],33,color)
+        drawCircle(position[0],position[1],this.size,color)
         ctx.globalAlpha = selectable ? 1 : 6/16;
         ctx.drawImage(this.img, position[0]-30, position[1]-30)
         ctx.globalAlpha = 1;
@@ -114,16 +117,14 @@ function blendColors(colorA, colorB, amount) {
 function remove(list, element){
 
     let index = -1
-
     for (let i = 0; i < list.length; i++){
         if (JSON.stringify(list[i]) == JSON.stringify(element)){
             index = i;
             break;
         }
     }
-
     if (index > -1) {
-        list.splice(index, 1); // Only removes the first 'banana'
+        list.splice(index, 1);
     }  
 }
 
@@ -146,23 +147,46 @@ const COPPER = new AtomType("copper", "#dd6622")
 const SILVER = new AtomType("silver", "#888888")
 const GOLD = new AtomType("gold", "#eedd33")
 
+const RESET = new AtomType("GRAPHIC_reset", "#777777", 40)
+
 const ATOMTYPES = [SALT, FIRE, EARTH, AIR, WATER, VITAE, MORS, QS, LEAD, TIN, IRON, COPPER, SILVER, GOLD]
 const METALS = [LEAD, TIN, IRON, COPPER, SILVER, GOLD]
 const CARDINALS = [SALT, FIRE, EARTH, AIR, WATER]
 
 const ADJACENTS = [[0,1],[-1,1],[-1,0],[0,-1],[1,-1],[1,0]]
 
+function string_atom_field(){    
+    let new_board = Array.from({ length: 11 }, () => Array(11).fill(null));
+    for (let r = 0; r < 11; r++){
+        for (let q = 0; q < 11; q++){   
+            new_board[r][q] = atom_field[r][q] == null ? null : atom_field[r][q].name;
+        }   
+    }
+    return new_board
+}
+
+function field_from_string(field){
+    
+    let new_board = Array.from({ length: 11 }, () => Array(11).fill(null));
+    for (let r = 0; r < 11; r++){
+        for (let q = 0; q < 11; q++){   
+            new_board[r][q] = field[r][q] === null ? null : get_atomtype(field[r][q]);
+        }   
+    }
+    return new_board
+}
+
 function get_atomtype(s){
     for (const a of ATOMTYPES){ if (s == a.name) {return a}}
     return SALT
 }
 
-function atom_counts(a){
+function atom_counts(a=null){
 
     let count = 0
     for (let r = 0; r < 11; r++){
         for (let q = 0; q < 11; q++){   
-            if (atom_field[r][q] == a) {count++;}
+            if (a == null ^ atom_field[r][q] == a) {count++;}
         }   
     }
     return count
@@ -195,7 +219,11 @@ const VANILLA = new Variant(
     },
     is_selectable = function(h) {
 
-        let my_atom = atom_field[h[0]][h[1]];
+        let my_atom;
+
+        try {my_atom = atom_field[h[0]][h[1]];}
+        catch { return false; }
+
         if (my_atom == null) { return false; }
 
         let valids = []
@@ -366,6 +394,9 @@ const VANILLA = new Variant(
             if (this.is_selectable(h)) { 
                 if (get_atom(h) == GOLD) {
                     atom_field[h[0]][h[1]] = null;
+
+                    if (atom_counts(null) == 0) { wincount++; }
+
                     myGameArea.drawAtoms();
                 }
                 else {
@@ -385,6 +416,9 @@ const VANILLA = new Variant(
                 if (this.atom_compat(get_atom(h), get_atom(selected_hexes[0]))) {
                     atom_field[h[0]][h[1]] = null;
                     atom_field[selected_hexes[0][0]][selected_hexes[0][1]] = null;
+
+                    if (atom_counts(null) == 0) { wincount++; }
+
                     selected_hexes = []
                 }
                 else {
@@ -395,7 +429,7 @@ const VANILLA = new Variant(
         }
     },
 
-    info_board = function(x=null, y=null){
+    info_board = function(x=null, y=null, click=false){
 
         let w_offset = Math.round(WIDTH/2);
         let h_offset = 900
@@ -424,9 +458,16 @@ const VANILLA = new Variant(
                 let distanceY = y - value[1] - h_offset;
                 let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
                 let a = get_atomtype(key);
-                if (distance <= 33) {
-                    if (hovered_atom == a) { hovered_atom = null; }
-                    else { hovered_atom = a; }
+                if (atom_counts(a) == 0) { continue; }
+                if (distance <= a.size) {
+
+                    if (click) {
+                        if (hovered_atom == a) { hovered_atom = null; }
+                        else { hovered_atom = a; }
+                    }
+                    else {
+                        return true;
+                    }
                 }
             }
         }
@@ -441,7 +482,7 @@ const VANILLA = new Variant(
 
                 a.render(pos,count>0,BACKGROUND);
 
-                ctx.font = "30px Arial";
+                ctx.font = "30px Trebuchet MS";
                 ctx.fillStyle = "white";
                 ctx.lineWidth = 6;
                 ctx.strokeStyle = BACKGROUND;
@@ -468,10 +509,21 @@ const canvas = document.createElement("canvas")
 const ctx = canvas.getContext("2d");
 const BACKGROUND = "#555555"
 
+const RESET_COORDS = [WIDTH/2-475+40, 945]
+
 let myGameArea = {
     start : function() {
         gamemode = VANILLA
-        atom_field = gamemode.board_gen()
+
+        if (localStorage.getItem("atom_field") == null) {
+            this.reset();
+        }
+        else {
+            try { atom_field = field_from_string(JSON.parse(localStorage.getItem("atom_field")))} catch {this.reset()}
+        }
+
+        if (localStorage.getItem("wincount") != null) { wincount = parseInt(localStorage.getItem("wincount")); }
+        
         selected_hexes = []
 
         canvas.width = WIDTH;
@@ -484,6 +536,13 @@ let myGameArea = {
     clearHex : function(r,q){
         let atomPosition = screenPosition(r, q, canvas);
         drawCircle(atomPosition[0],atomPosition[1],40,"#DDD")
+    },
+
+    reset : function(){
+        selected_hexes = [];
+        hovered_atom = null;
+        atom_field = gamemode.board_gen()
+        localStorage.setItem("atom_field", JSON.stringify(string_atom_field()));
     },
 
     clear : function() {
@@ -512,6 +571,7 @@ let myGameArea = {
     drawAtoms : function(){
 
         this.clear()
+        RESET.render(RESET_COORDS)
         for (let q = 0; q < 11; q++){
             for (let r = 0; r < 11; r++){   
                 if (atom_field[r][q] != null){
@@ -528,26 +588,37 @@ let myGameArea = {
         }
         gamemode.info_board()
 
-    }
+        ctx.font = "30px Trebuchet MS";
+        ctx.fillStyle = "white";
+        ctx.textAlign = "center"
+
+        localStorage.setItem("atom_field", JSON.stringify(string_atom_field()));
+        localStorage.setItem("wincount", wincount.toString())
+
+        ctx.fillText("Wins: "+wincount.toString(),920,960)
+
+    },
+}
+
+function dist(p1, p2){
+    let distanceX = p1[0] - p2[0];
+    let distanceY = p1[1] - p2[1]
+    return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
 }
 
 function circleFromHex(x,y){
 
+    if (dist(RESET_COORDS,[x,y]) <= 40) { return 'reset'; }
+
     for (let q = 0; q < 11; q++) {
-        for (let r = 0; r < 11; r++){   
-
+        for (let r = 0; r < 12; r++){   
             let atomPosition = screenPosition(r, q, canvas);
-            let distanceX = x - atomPosition[0];
-            let distanceY = y - atomPosition[1];
-            let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-            if (distance <= 33) {
+            if (dist(atomPosition, [x,y]) <= 33) {
                 return [r,q]
             }
 
         }
     }
-
     return null
 }
 
@@ -560,10 +631,13 @@ canvas.addEventListener('click', function(event){
 
     let location = circleFromHex(mouseX, mouseY)
 
-    if (location != null){
+    if (location == 'reset'){
+        myGameArea.reset()
+    }
+    else if (location != null){
         gamemode.post_click(location)
     }
-    gamemode.info_board(mouseX, mouseY)
+    gamemode.info_board(mouseX, mouseY, true)
     myGameArea.drawAtoms()
 
 }, false)
@@ -577,7 +651,7 @@ canvas.addEventListener('mousemove', function(event) {
     let location = circleFromHex(mouseX, mouseY)
 
     // Change cursor style based on hover condition
-    if (location != null && gamemode.is_selectable(location)) {
+    if ((location != null && ((typeof location == 'string') || gamemode.is_selectable(location))) || gamemode.info_board(mouseX, mouseY, false)) {
         canvas.style.cursor = 'pointer'; // Hand icon
     } else {
         canvas.style.cursor = 'default'; // Regular arrow

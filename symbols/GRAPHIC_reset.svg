@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg">
+    <g id="OMA_S_silver__opus_magnum">
+        <path d="M 15.86 15.86 a 20 20 0 1 1 0 28.28" stroke="white" fill="none" stroke-width="3" transform="rotate(120, 30, 30)"/>
+        <path d="M 35 15 h 10 v 10" stroke="white" fill="none" stroke-width="2" transform="rotate(-45,60,45) scale(1.5)" />
+    </g>
+</svg>
