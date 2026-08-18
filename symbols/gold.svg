@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg">
+    <g id="OMA_S_gold__opus_magnum">
+        <circle cx="30" cy="30" r="20" stroke-width="3" stroke="white" fill="none" />
+        <circle cx="30" cy="30" r="1" class="fill" stroke-width="3" stroke="white" fill="none" />
+    </g>
+</svg>
