@@ -102,6 +102,7 @@ function hex_equals(h1, h2){
 }
 
 async function load_bitboard_data(){
+
     const response = await fetch('./solitaire-bitboards.bin')
     const blob = await response.blob()
     const bytes = await blob.bytes()
@@ -208,7 +209,7 @@ const VANILLA = new Variant(
                     }
                     marbleHexes.push([q,r])
                 }
-                boardbyte = boardbyte >> 1;
+                boardByte = boardByte >> 1;
             }
         }
 
