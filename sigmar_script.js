@@ -431,7 +431,7 @@ const VANILLA = new Variant(
 
     info_board = function(x=null, y=null, click=false){
 
-        let w_offset = Math.round(WIDTH/2);
+        let w_offset = 500;
         let h_offset = 900
 
         let atom_positions = {
@@ -482,14 +482,15 @@ const VANILLA = new Variant(
 
                 a.render(pos,count>0,BACKGROUND);
 
-                ctx.font = "30px Trebuchet MS";
+                ctx.font = "30px  Lexend";
                 ctx.fillStyle = "white";
-                ctx.lineWidth = 6;
+                ctx.lineWidth = 5;
+                ctx.textAlign = "center"
                 ctx.strokeStyle = BACKGROUND;
                 if (!METALS.includes(a)){
                     if (CARDINALS.includes(a) && count%2 == 1) { ctx.fillStyle = "#FF5555"; }
-                    ctx.strokeText(count,pos[0]+20, pos[1]+40);
-                    ctx.fillText(count, pos[0]+20, pos[1]+40);
+                    ctx.strokeText(count,pos[0]+25, pos[1]+40);
+                    ctx.fillText(count, pos[0]+25, pos[1]+40);
                 }
             }
         }
@@ -588,9 +589,9 @@ let myGameArea = {
         }
         gamemode.info_board()
 
-        ctx.font = "30px Trebuchet MS";
+        ctx.font = "30px Lexend";
         ctx.fillStyle = "white";
-        ctx.textAlign = "center"
+        ctx.textAlign = "center";
 
         localStorage.setItem("atom_field", JSON.stringify(string_atom_field()));
         localStorage.setItem("wincount", wincount.toString())
