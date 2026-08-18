@@ -555,8 +555,8 @@ canvas.addEventListener('click', function(event){
 
     const rect = canvas.getBoundingClientRect();
     
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = (event.clientX - rect.left) / rect.width * canvas.width;
+    const mouseY = (event.clientY - rect.top) / rect.height * canvas.height;
 
     let location = circleFromHex(mouseX, mouseY)
 
@@ -571,8 +571,8 @@ canvas.addEventListener('click', function(event){
 canvas.addEventListener('mousemove', function(event) {
     // Get mouse boundaries relative to the canvas layout viewport
     const rect = canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = (event.clientX - rect.left) / rect.width * canvas.width;
+    const mouseY = (event.clientY - rect.top) / rect.height * canvas.height;
 
     let location = circleFromHex(mouseX, mouseY)
 
