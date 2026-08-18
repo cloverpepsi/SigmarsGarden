@@ -17,6 +17,8 @@ class AtomType {
     constructor(name = null, color = "#000"){
         this.name = name
         this.color = color
+        this.img = new Image();
+        this.img.src = './symbols/'+name+".svg"
     }
     glyph_path(){
         return './symbols/'+this.name+".svg"
@@ -99,6 +101,15 @@ function hex_equals(h1, h2){
     return h1[0] == h2[0] && h1[1] == h2[1]
 }
 
+async function load_bitboard_data(){
+    const response = await fetch('./solitaire-bitboards.bin')
+    const blob = await response.blob()
+    const bytes = await blob.bytes()
+    return blob
+}
+
+const bitboard = load_bitboard_data();
+
 const SALT = new AtomType("salt", "#aa9988")
 const FIRE = new AtomType("fire", "#ee6633")
 const EARTH = new AtomType("earth", "#55bb55")
@@ -175,19 +186,29 @@ const VANILLA = new Variant(
 
         let marbleHexes = [];
 
+        let mirrorBoard = RandomInt(2) == 0;
+
+        let boardID = RandomInt((bitboard.length-4)/16)*16+4
+
         for (let i = 0; i < 16; i++)
         {
+            let boardByte = bitboard[boardID + i];
             for (let j = 0; j < 8; j++)
             {
-                let num = i * 8 + j;
-                if (ATOM_STRING[num] == "1")
+                if (boardByte%2 == 1)
                 {
+                    let num = i * 8 + j;
                     // add hex
                     let q = Math.floor(num / 11);
                     let r = (num % 11);
-                    
+                    if (mirrorBoard)
+                    {
+                        q += r;
+                        r = -r;
+                    }
                     marbleHexes.push([q,r])
                 }
+                boardbyte = boardbyte >> 1;
             }
         }
 
@@ -407,10 +428,8 @@ let myGameArea = {
                     let color = gamemode.is_selectable([r,q], atom_field) ? currentAtom.color : blendColors(currentAtom.color,"#FFFFFF",13/16);
                     drawCircle(atomPosition[0],atomPosition[1],33,color)
 
-                    let img = new Image();
-                    img.src = currentAtom.glyph_path()
                     ctx.globalAlpha = gamemode.is_selectable([r,q], atom_field) ? 1 : 5/16;
-                    ctx.drawImage(img, atomPosition[0]-30, atomPosition[1]-30)
+                    ctx.drawImage(currentAtom.img, atomPosition[0]-30, atomPosition[1]-30)
                     ctx.globalAlpha = 1;
                 }
             }   
