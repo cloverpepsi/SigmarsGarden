@@ -437,7 +437,7 @@ const VANILLA = new Variant(
                 let count = atom_counts(a);
                 let pos = [value[0]+w_offset, value[1]+h_offset];
 
-                if (hovered_atom == a) { drawCircle(pos[0], pos[1], 40, "#FFD")}
+                if (hovered_atom == a) { drawCircle(pos[0], pos[1], 40, "#DFF")}
 
                 a.render(pos,count>0,BACKGROUND);
 
@@ -519,7 +519,8 @@ let myGameArea = {
                     let currentAtom = atom_field[r][q];
                     let atomPosition = screenPosition(r, q, canvas);
 
-                    if (hex_selected(r,q) || currentAtom == hovered_atom) { drawCircle(atomPosition[0], atomPosition[1], 40, "#FFD")}
+                    if (currentAtom == hovered_atom) {drawCircle(atomPosition[0], atomPosition[1], 40, "#DFF")}
+                    if (hex_selected(r,q)) { drawCircle(atomPosition[0], atomPosition[1], 40, "#FFD")}
                     
                     currentAtom.render(atomPosition,gamemode.is_selectable([r,q]))
                 }
