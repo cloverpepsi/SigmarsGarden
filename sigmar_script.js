@@ -2,7 +2,7 @@
 
 const BOARD_STRING = "00000111111000011111110001111111100111111111011111111111111111111111111111110111111111001111111100011111110000111111000000000000";
 
-const ATOM_STRING = "00000000000000001111100000111111000011101110001101101100111111111001101101100011101110000111111000001111100000000000000000000000"
+const ATOM_STRING = "11100000100001110011000101111010001010011010101011010000100100110001011110101010001010001011110100011000110000110000111100000000"
 
 const WIDTH = 1000;
 const HEIGHT = 850;
@@ -101,16 +101,6 @@ function hex_equals(h1, h2){
     return h1[0] == h2[0] && h1[1] == h2[1]
 }
 
-async function load_bitboard_data(){
-
-    const response = await fetch('./solitaire-bitboards.bin')
-    const blob = await response.blob()
-    const bytes = await blob.bytes()
-    return blob
-}
-
-const bitboard = load_bitboard_data();
-
 const SALT = new AtomType("salt", "#aa9988")
 const FIRE = new AtomType("fire", "#ee6633")
 const EARTH = new AtomType("earth", "#55bb55")
@@ -187,29 +177,19 @@ const VANILLA = new Variant(
 
         let marbleHexes = [];
 
-        let mirrorBoard = RandomInt(2) == 0;
-
-        let boardID = RandomInt((bitboard.length-4)/16)*16+4
-
         for (let i = 0; i < 16; i++)
         {
-            let boardByte = bitboard[boardID + i];
             for (let j = 0; j < 8; j++)
             {
-                if (boardByte%2 == 1)
+                let num = i * 8 + j;
+                if (ATOM_STRING[num] == "1")
                 {
-                    let num = i * 8 + j;
                     // add hex
                     let q = Math.floor(num / 11);
                     let r = (num % 11);
-                    if (mirrorBoard)
-                    {
-                        q += r;
-                        r = -r;
-                    }
+                    
                     marbleHexes.push([q,r])
                 }
-                boardByte = boardByte >> 1;
             }
         }
 
