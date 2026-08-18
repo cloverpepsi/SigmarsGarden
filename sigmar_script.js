@@ -482,7 +482,7 @@ const VANILLA = new Variant(
 
                 a.render(pos,count>0,BACKGROUND);
 
-                ctx.font = "30px  Lexend";
+                ctx.font = "30px Lexend";
                 ctx.fillStyle = "white";
                 ctx.lineWidth = 5;
                 ctx.textAlign = "center"
