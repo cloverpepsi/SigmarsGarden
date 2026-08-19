@@ -2,7 +2,7 @@ const BITBOARDS = "B+GMXpRVC8noVRS9GMPwAA== AeEYYxxl9evX0xxjDEPAAA== B+GMUpKUY//
 
 const BOARD_STRING = "00000111111000011111110001111111100111111111011111111111111111111111111111110111111111001111111100011111110000111111000000000000";
 
-const WIDTH = 1000;
+const WIDTH = 1050;
 const HEIGHT = 850;
 
 let atom_field;
@@ -11,15 +11,18 @@ let selected_hexes = [];
 
 let hovered_atom = null;
 
+let showInfo = false;
+
 let wincount = 0;
 
 let gamemode;
 
 class AtomType {
-    constructor(name = null, color = "#000", size=33){
+    constructor(name = null, color = "#000", size=33, render_addition = function(){}){
         this.name = name
         this.color = color
         this.size = size
+        this.render_addition = render_addition;
         this.img = new Image();
         this.img.src = './symbols/'+name+".svg"
     }
@@ -30,6 +33,7 @@ class AtomType {
         
         let color = selectable ? this.color : blendColors(this.color,background,10/16);
         drawCircle(position[0],position[1],this.size,color)
+        this.render_addition(position)
         ctx.globalAlpha = selectable ? 1 : 6/16;
         ctx.drawImage(this.img, position[0]-30, position[1]-30)
         ctx.globalAlpha = 1;
@@ -62,6 +66,7 @@ function RandomInt(max, min=0) {
 }
 
 function drawShape(x, y, r, sides) {
+  ctx.save()
   ctx.translate(x, y);
   for (let i = 0; i < sides; i++) {
     const rotation = ((Math.PI * 2) / sides) * i;
@@ -75,7 +80,7 @@ function drawShape(x, y, r, sides) {
   ctx.closePath();
   ctx.fillStyle = "#BBB"
   ctx.fill();
-  ctx.resetTransform();
+  ctx.restore();
 }
 
 function drawCircle(x,y,r,color){
@@ -83,6 +88,7 @@ function drawCircle(x,y,r,color){
     ctx.arc(x,y,r, 0, 2*Math.PI);
     ctx.fillStyle = color;
     ctx.fill();
+    ctx.fillStyle = "white";
 }
 
 function rgbToHex(rgb) {
@@ -148,6 +154,10 @@ const SILVER = new AtomType("silver", "#888888")
 const GOLD = new AtomType("gold", "#eedd33")
 
 const RESET = new AtomType("GRAPHIC_reset", "#777777", 40)
+const INFO = new AtomType("GRAPHIC_info", "#335599", 40, function(position){
+    ctx.font = "40px Lexend"
+    ctx.fillText("?",position[0],position[1]+15)
+})
 
 const ATOMTYPES = [SALT, FIRE, EARTH, AIR, WATER, VITAE, MORS, QS, LEAD, TIN, IRON, COPPER, SILVER, GOLD]
 const METALS = [LEAD, TIN, IRON, COPPER, SILVER, GOLD]
@@ -494,6 +504,83 @@ const VANILLA = new Variant(
                 }
             }
         }
+
+        if (x != null) {return;}
+
+        if (showInfo){
+
+            ctx.fillStyle = "#333"
+            ctx.fillRect(0,1060,WIDTH,HEIGHT)
+
+            ctx.font = "20px Lexend";
+            ctx.fillStyle = "white";
+            ctx.lineWidth = 5;
+            ctx.textAlign = "center"
+
+            // Rendering the informational screen
+
+            ctx.fillText("Select a free marble, and then pick a matching marble to remove them both from the board.",WIDTH/2,1100)
+            ctx.fillText("A marble is free if it has 3 contiguous empty spaces next to it. Spaces off the board count as empty.", WIDTH/2, 1122)
+
+            let render_y = 1200
+
+            let left_pos = 110
+            let info_x = left_pos;
+            for (const atype of CARDINALS){
+                if (atype == SALT) {continue; }
+                atype.render([info_x,render_y])
+                atype.render([info_x,render_y+100])
+                ctx.fillText("+",info_x,render_y+56)
+                info_x += 80
+            }
+
+            ctx.fillText("The four cardinal elements match", left_pos+80, render_y+170)
+            ctx.fillText("with others of the same type.", left_pos+80, render_y+170+22)
+
+            info_x += 50
+            for (const atype of CARDINALS){
+                atype.render([info_x,render_y])
+                SALT.render([info_x,render_y+100])
+                ctx.fillText("+",info_x,render_y+56)
+                info_x += 80
+            }
+            ctx.fillText("Salt matches with any of the", left_pos+440, render_y+170)
+            ctx.fillText("cardinal elements, or with itself.", left_pos+440, render_y+170+22)
+
+            info_x += 50
+            VITAE.render([info_x, render_y])
+            MORS.render([info_x, render_y+100])
+            ctx.fillText("+",info_x,render_y+56)
+
+            ctx.fillText("Vitae and Mors will only", left_pos+780, render_y+170)
+            ctx.fillText("match with their opposite.", left_pos+780, render_y+170+22)
+
+
+            render_y += 280
+            left_pos = 250
+            info_x = left_pos
+
+            for (const atype of METALS){
+                atype.render([info_x,render_y+(atype == GOLD ? 50 : 0)])
+                if (atype != GOLD) { 
+                    QS.render([info_x,render_y+100]);
+                    ctx.fillText("+",info_x,render_y+56)
+                    if (atype == SILVER) {
+                        ctx.font = "24px Lexend";
+                        ctx.fillText("▲", info_x+52, render_y+23)
+                        ctx.font = "20px Lexend";
+                    }
+                    else { ctx.fillText("▶", info_x+50, render_y+10) }
+                }
+                info_x += 100
+            }
+
+            ctx.fillText("The metals match with quicksilver, but only in the", left_pos+250, render_y+170)
+            ctx.fillText("order of their transmutation from lead to gold.", left_pos+250, render_y+170+22)
+        } else {
+            ctx.clearRect(0,1060,WIDTH,HEIGHT)
+        }
+
     }
 
 )
@@ -510,7 +597,8 @@ const canvas = document.createElement("canvas")
 const ctx = canvas.getContext("2d");
 const BACKGROUND = "#555555"
 
-const RESET_COORDS = [WIDTH/2-475+40, 945]
+const RESET_COORDS = [WIDTH/2-475+40, 900]
+const INFO_COORDS = [RESET_COORDS[0],RESET_COORDS[1]+100]
 
 let myGameArea = {
     start : function() {
@@ -528,7 +616,7 @@ let myGameArea = {
         selected_hexes = []
 
         canvas.width = WIDTH;
-        canvas.height = HEIGHT+200;
+        canvas.height = HEIGHT+850;
         document.body.insertBefore(canvas, document.body.childNodes[0]);
         this.clear();
         this.drawAtoms();
@@ -551,7 +639,7 @@ let myGameArea = {
     clear : function() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        drawShape(WIDTH/2, HEIGHT/2, 475 ,6)
+        drawShape(WIDTH/2, HEIGHT/2, 475, 6)
 
         for (let i = 0; i < 16; i++)
         {
@@ -575,6 +663,7 @@ let myGameArea = {
 
         this.clear()
         RESET.render(RESET_COORDS)
+        INFO.render(INFO_COORDS)
         for (let q = 0; q < 11; q++){
             for (let r = 0; r < 11; r++){   
                 if (atom_field[r][q] != null){
@@ -612,6 +701,7 @@ function dist(p1, p2){
 function circleFromHex(x,y){
 
     if (dist(RESET_COORDS,[x,y]) <= 40) { return 'reset'; }
+    if (dist(INFO_COORDS,[x,y]) <= 40) { return 'info'; }
 
     for (let q = 0; q < 11; q++) {
         for (let r = 0; r < 12; r++){   
@@ -637,11 +727,14 @@ canvas.addEventListener('click', function(event){
     if (location == 'reset'){
         myGameArea.reset()
     }
+    else if (location == 'info'){
+        showInfo = !showInfo;
+    }
     else if (location != null){
         gamemode.post_click(location)
     }
-    gamemode.info_board(mouseX, mouseY, true)
     myGameArea.drawAtoms()
+    gamemode.info_board(mouseX, mouseY, true)
 
 }, false)
 
