@@ -601,8 +601,8 @@ const canvas = document.createElement("canvas")
 const ctx = canvas.getContext("2d");
 const BACKGROUND = "#555555"
 
-const RESET_COORDS = [WIDTH/2-475+40, 900]
-const INFO_COORDS = [RESET_COORDS[0],RESET_COORDS[1]+100]
+const RESET_COORDS = [WIDTH/2-475+40, 893]
+const INFO_COORDS = [RESET_COORDS[0],RESET_COORDS[1]+104]
 
 let myGameArea = {
     start : function() {
