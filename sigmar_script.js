@@ -566,11 +566,15 @@ const VANILLA = new Variant(
                     QS.render([info_x,render_y+100]);
                     ctx.fillText("+",info_x,render_y+56)
                     if (atype == SILVER) {
-                        ctx.font = "24px Lexend";
-                        ctx.fillText("▲", info_x+52, render_y+23)
-                        ctx.font = "20px Lexend";
+                        ctx.save()
+                        ctx.translate(info_x+52, render_y+22);
+                        ctx.rotate(Math.PI/6)
+                        ctx.fillText("➤", 0, 0)
+                        ctx.restore()
                     }
-                    else { ctx.fillText("▶", info_x+50, render_y+10) }
+                    else { 
+                        ctx.fillText("➤", info_x+50, render_y+10)
+                    }
                 }
                 info_x += 100
             }
