@@ -624,6 +624,7 @@ let myGameArea = {
         document.body.insertBefore(canvas, document.body.childNodes[0]);
         this.clear();
         this.drawAtoms();
+        window.scrollTo(0, 0);
 
         setTimeout(function() { myGameArea.drawAtoms(); }, 500);
     },
