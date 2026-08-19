@@ -567,7 +567,7 @@ const VANILLA = new Variant(
                     ctx.fillText("+",info_x,render_y+56)
                     if (atype == SILVER) {
                         ctx.save()
-                        ctx.translate(info_x+52, render_y+22);
+                        ctx.translate(info_x+48, render_y+29);
                         ctx.rotate(Math.PI/6)
                         ctx.fillText("➤", 0, 0)
                         ctx.restore()
