@@ -46,7 +46,7 @@ class Variant {
                 board_gen = function(h){},
                 post_click = function(x=null, y=null, click=false){},
                 info_board = function(){}, 
-                board_details = function(first){},
+                board_details = function(first){ if (first) { drawShape(WIDTH/2, HEIGHT/2, 475, 6, 0, "#BBB"); }},
                 board_string = BOARD_STRING){
         this.hex_compat = hex_compat
         this.atom_compat = atom_compat
@@ -1432,8 +1432,6 @@ let myGameArea = {
 
     clear : function() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        drawShape(WIDTH/2, HEIGHT/2, 475, 6, 0, "#BBB")
 
         gamemode.board_details(true);
 
