@@ -1394,7 +1394,7 @@ const VARIANT_LIST = {"Original": VANILLA, "House Colvan": COLVAN, "Production":
 let myGameArea = {
     start : function() {
 
-        gamemode = COLVAN
+        gamemode = VANILLA
         if (localStorage.getItem("gamemode") != null) { gamemode = VARIANT_LIST[localStorage.getItem("gamemode")]}
 
         if (localStorage.getItem("atom_field") == null) {
