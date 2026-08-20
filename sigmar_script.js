@@ -950,6 +950,7 @@ const VANILLA_2 = new Variant(
         }
 
         else {
+            let quint_count = atom_counts(QUINT)
             for (const [key, value] of Object.entries(atom_positions)) {
                 let a = get_atomtype(key);
                 let count = atom_counts(a);
@@ -965,7 +966,7 @@ const VANILLA_2 = new Variant(
                 ctx.textAlign = "center"
                 ctx.strokeStyle = BACKGROUND;
                 if (!METALS.includes(a)){
-                    if (CARDINALS.includes(a) && count%2 == 1) { ctx.fillStyle = "#FF5555"; }
+                    if (CARDINALS.includes(a) && (count+(CARDINALS_2.includes(a) ? quint_count : 0))%2 == 1) { ctx.fillStyle = "#FF5555"; }
                     ctx.strokeText(count,pos[0]+25, pos[1]+40);
                     ctx.fillText(count, pos[0]+25, pos[1]+40);
                 }
