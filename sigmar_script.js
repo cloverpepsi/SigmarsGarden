@@ -32,7 +32,7 @@ class AtomType {
         
         let color = selectable ? this.color : blendColors(this.color,background,10/16);
         drawCircle(position[0],position[1],this.size,color)
-        this.render_addition(position)
+        this.render_addition(position,selectable,background)
         ctx.globalAlpha = selectable ? 1 : 6/16;
         ctx.drawImage(this.img, position[0]-30, position[1]-30)
         ctx.globalAlpha = 1;
@@ -73,17 +73,31 @@ const IRON = new AtomType("iron", "#884433")
 const COPPER = new AtomType("copper", "#dd6622")
 const SILVER = new AtomType("silver", "#888888")
 const GOLD = new AtomType("gold", "#eedd33")
+const QUINT = new AtomType("quintessence", "#333333", 33, function(position, selectable, background){
+
+
+    let color_fire = selectable ? FIRE.color : blendColors(FIRE.color,background,10/16);
+    let color_water = selectable ? WATER.color : blendColors(WATER.color,background,10/16);
+    let color_earth = selectable ? EARTH.color : blendColors(EARTH.color,background,10/16);
+    let color_air = selectable ? AIR.color : blendColors(AIR.color,background,10/16);
+
+    drawCircle(position[0]-7, position[1]+13,13,color_fire)
+    drawCircle(position[0]+13, position[1]+13,10,color_water)
+    drawCircle(position[0], position[1]+3,13,color_earth)
+    drawCircle(position[0]+3, position[1]+13,10,color_air)
+})
 
 const RESET = new AtomType("GRAPHIC_reset", "#777777", 40)
-const INFO = new AtomType("GRAPHIC_info", "#469", 40, function(position){
+const INFO = new AtomType("GRAPHIC_info", "#469", 40, function(position, selectable, background){
     ctx.font = "40px Lexend"
     ctx.textAlign = "center"
     ctx.fillText("?",position[0],position[1]+15)
 })
 
-const ATOMTYPES = [SALT, FIRE, EARTH, AIR, WATER, VITAE, MORS, QS, LEAD, TIN, IRON, COPPER, SILVER, GOLD]
+const ATOMTYPES = [SALT, FIRE, EARTH, AIR, WATER, VITAE, MORS, QS, LEAD, TIN, IRON, COPPER, SILVER, GOLD, QUINT]
 const METALS = [LEAD, TIN, IRON, COPPER, SILVER, GOLD]
 const CARDINALS = [SALT, FIRE, EARTH, AIR, WATER]
+const CARDINALS_2 = [FIRE, EARTH, AIR, WATER]
 
 const ADJACENTS = [[0,1],[-1,1],[-1,0],[0,-1],[1,-1],[1,0]]
 
@@ -544,7 +558,7 @@ const VANILLA = new Variant(
 
         if (showInfo){
 
-            ctx.fillStyle = "#333"
+            ctx.fillStyle = "#222"
             ctx.fillRect(0,1060,WIDTH,HEIGHT)
 
             ctx.font = "20px Lexend";
@@ -593,6 +607,442 @@ const VANILLA = new Variant(
 
             render_y += 280
             left_pos = 250
+            info_x = left_pos
+
+            for (const atype of METALS){
+                atype.render([info_x,render_y+(atype == GOLD ? 50 : 0)])
+                if (atype != GOLD) { 
+                    QS.render([info_x,render_y+100]);
+                    ctx.fillText("+",info_x,render_y+56)
+                    if (atype == SILVER) {
+                        ctx.save()
+                        ctx.translate(info_x+48, render_y+29);
+                        ctx.rotate(Math.PI/6)
+                        ctx.fillText("➤", 0, 0)
+                        ctx.restore()
+                    }
+                    else { 
+                        ctx.fillText("➤", info_x+50, render_y+10)
+                    }
+                }
+                info_x += 100
+            }
+
+            ctx.fillText("The metals match with quicksilver, but only in the", left_pos+250, render_y+170)
+            ctx.fillText("order of their transmutation from lead to gold.", left_pos+250, render_y+170+22)
+        } else {
+            ctx.clearRect(0,1060,WIDTH,HEIGHT)
+        }
+
+    }
+)
+
+// QUINTESSENCE VARIANT DEFINITION
+
+const VANILLA_2 = new Variant(
+    hex_compat = function(h1, h2) { return true; },
+    atom_compat = VANILLA.atom_compat,
+    is_selectable = VANILLA.is_selectable,
+    board_gen = function(){
+
+        let new_board = Array.from({ length: 11 }, () => Array(11).fill(null));
+        let center = [5,5]
+
+        let boardGenerated = false;
+        let moveHistory = []
+
+        let marbleHexes = [];
+
+        let bitboard = base64ToBitString(BITBOARDS[RandomInt(1024)])
+
+        for (let i = 0; i < 16; i++)
+        {
+            for (let j = 0; j < 8; j++)
+            {
+                let num = i * 8 + j;
+                if (bitboard[num] == "1")
+                {
+                    // add hex
+                    let r = Math.floor(num / 11);
+                    let q = (num % 11);
+                    
+                    marbleHexes.push([q,r])
+                }
+            }
+        }
+
+        while (!boardGenerated) {
+            let temporaryMarbles = [... marbleHexes]
+            moveHistory = [];
+
+            let quintCount = 0;
+            let moveCount = 0;
+            let quintMilestones = [RandomInt(2,24), RandomInt(2,24)].toSorted((a,b) => a-b);
+            while (temporaryMarbles.length > 0)
+            {
+                // find all marbles that could be chosen for the next move
+                let choosableMarbles = temporaryMarbles.filter(x => hexIsChoosable(x,temporaryMarbles) && !hex_equals(x,center));
+                // choose the next move
+                if (choosableMarbles.length >= 2)
+                {
+                    moveCount++;
+                    if (quintCount < 2 && choosableMarbles.length >= 5 && moveCount >= quintMilestones[quintCount]) {
+                        quintCount++;
+                        let match = []
+                        for (let i = 0; i < 5; i++){
+                            let newMarble = choosableMarbles[RandomInt(choosableMarbles.length)];
+                            match.push(newMarble);
+                            remove(choosableMarbles, newMarble)
+                            remove(temporaryMarbles, newMarble)
+                        }
+                        moveHistory.push(match)
+                    }
+                    else {
+                        // choose a random pair of marbles to be the next move
+                        let marbleA;
+                        let marbleB;
+                        marbleA = choosableMarbles[RandomInt(choosableMarbles.length)];
+                        remove(choosableMarbles, marbleA); // don't accidentally choose A again when choosing B!
+                        marbleB = choosableMarbles[RandomInt(choosableMarbles.length)];
+                        moveHistory.push([marbleA, marbleB]);
+                        remove(temporaryMarbles,marbleA);
+                        remove(temporaryMarbles,marbleB);
+                    }
+                }
+                else if (hexIsChoosable(center) && hex_selected(center[0], center[1], temporaryMarbles))
+                {
+                    // only option is to choose Gold as our next move
+                    moveCount++;
+                    moveHistory.push([center,center])
+                    remove(temporaryMarbles, center)
+                }
+                else { break; }
+
+                if (temporaryMarbles.length == 0 && quintCount == 2) {
+                    boardGenerated = true;
+                    break;
+                }
+            }
+        }
+
+
+		// reverse the list, so moveHistory[0] is the LAST move made to solve the board
+		moveHistory.reverse();
+		
+		// generate "marble bags" that store the moves to be made
+        let saltlikeBag = []
+        let metalBag = []
+
+		// put animismus matches in the saltlikeBag
+		for (let i = 0; i < 3; i++)
+		{
+			saltlikeBag.push([VITAE, MORS]);
+		}
+		let cardinals = [ 4, 6, 6, 6, 6 ]; // salt, air, water, fire, earth
+
+		// put salt matches in the saltlikeBag
+		while (cardinals[0] > 0)
+		{
+			cardinals[0] -= 2;
+			let match = RandomInt(5);
+			if (match == 0)
+			{
+				saltlikeBag.push([SALT, SALT]);
+			}
+			else
+			{	
+				cardinals[match] -= 2;
+				saltlikeBag.push([SALT, CARDINALS[match]]);
+				saltlikeBag.push([SALT, CARDINALS[match]]);
+			}
+		}
+
+		// put the remaining cardinal matches in the saltlikeBag
+		for (let i = 1; i < 5; i++)
+		{
+			while (cardinals[i] > 0)
+			{
+				cardinals[i] -= 2;
+				saltlikeBag.push([CARDINALS[i], CARDINALS[i]]);
+			}
+		}
+
+        //One of each metal on the board
+        // we need to insert them in order, since we must solve them in order!
+        for (let i = 4; i >= 0; i--)
+        {
+            metalBag.push([METALS[i], QS])
+        }
+
+		// "unsolve" the board by using the move history in reverse to place marbles
+
+		let placedGold = false;
+		for (let m = 0; m < moveHistory.length; m++)
+		{
+
+            if (moveHistory[m].length == 2) {
+
+                var [hex1, hex2] = moveHistory[m];
+
+                if (hex_equals(hex1, hex2))
+                {
+                    // the Gold match!
+                    new_board[center[0]][center[1]] = GOLD
+                    placedGold = true;
+                }
+                else {
+                    // otherwise, a regular match
+                    let pick = RandomInt(saltlikeBag.length + metalBag.length);
+                    if (!placedGold)
+                    {
+                        pick = RandomInt(saltlikeBag.length);
+                    }
+                    let match;
+                    if (pick < saltlikeBag.length)
+                    {
+                        match = saltlikeBag[pick];
+                        remove(saltlikeBag, match);
+                    }
+                    else
+                    {
+                        match = metalBag[0];
+                        remove(metalBag,match)
+                    }
+                    new_board[hex1[0]][hex1[1]] = match[0];
+                    new_board[hex2[0]][hex2[1]] = match[1];
+                }
+            } else {
+                // place quint marbles
+                let quint_selection = [QUINT, FIRE, WATER, EARTH, AIR]
+                for (let i = 0; i < moveHistory[m].length; i++){
+                    let pick = RandomInt(quint_selection.length)
+                    new_board[moveHistory[m][i][0]][moveHistory[m][i][1]] = quint_selection[pick]
+                    quint_selection.splice(pick, 1)
+                }
+            }
+		}
+
+		// tada! randomized board
+		return new_board;
+    },
+    post_click = function(h){
+        if (selected_hexes.length == 0){
+
+            if (this.is_selectable(h)) { 
+                if (get_atom(h) == GOLD) {
+                    atom_field[h[0]][h[1]] = null;
+
+                    if (atom_counts(null) == 0) { wincount++; }
+
+                    myGameArea.drawAtoms();
+                }
+                else {
+                    selected_hexes.push(h);
+                    myGameArea.drawAtoms();
+                }
+            }
+        }
+        else if (selected_hexes.length == 1){
+
+            let previous_atom = get_atom(selected_hexes[0]);
+            let my_atom = get_atom(h);
+
+            if (hex_selected(h[0],h[1])) {
+                selected_hexes = []
+                myGameArea.drawAtoms();
+            }
+
+            else if (this.is_selectable(h)){
+
+                if ((my_atom == QUINT && CARDINALS_2.includes(previous_atom)) || previous_atom == QUINT && CARDINALS_2.includes(my_atom)) {
+                    selected_hexes.push(h);
+                    myGameArea.drawAtoms();
+                }
+
+                else if (this.atom_compat(my_atom, previous_atom)) {
+                    atom_field[h[0]][h[1]] = null;
+                    atom_field[selected_hexes[0][0]][selected_hexes[0][1]] = null;
+
+                    if (atom_counts(null) == 0) { wincount++; }
+
+                    selected_hexes = []
+                }
+                else {
+                    selected_hexes = [h]
+                }
+                myGameArea.drawAtoms();
+            }
+        }
+        else if (selected_hexes.length < 5){
+
+            let my_atom = get_atom(h);
+
+            if (hex_selected(h[0],h[1])) {
+                selected_hexes = []
+                myGameArea.drawAtoms();
+            }
+            else if (this.is_selectable(h)){
+
+                let active_elements = []
+                for (const selected_h of selected_hexes) { active_elements.push(get_atom(selected_h)) }
+                
+                if (CARDINALS_2.includes(my_atom) && !active_elements.includes(my_atom)) {
+
+                    selected_hexes.push(h);
+                    if (selected_hexes.length == 5) {
+                        for (const selected_h of selected_hexes){
+                            atom_field[selected_h[0]][selected_h[1]] = null;
+                        }
+                        selected_hexes = []
+                        if (atom_counts(null) == 0) { wincount++; }
+                    }
+                    myGameArea.drawAtoms();
+
+
+                } else { selected_hexes = [h] }
+            }
+        }
+
+    },
+
+    info_board = function(x=null, y=null, click=false){
+
+        let w_offset = 500;
+        let h_offset = 900
+
+        let atom_positions = {
+            salt: [-262, 0],
+            air: [-187, 0],
+            fire: [-112,0],
+            water: [-37, 0],
+            earth: [37,0],
+            quintessence: [112,0],
+            vitae: [187,0],
+            mors: [262,0],
+
+            quicksilver: [-240, 90],
+            lead: [-160, 90],
+            tin: [-80, 90],
+            iron: [0, 90],
+            copper: [80, 90],
+            silver: [160, 90],
+            gold: [240, 90]
+        }
+
+        if (x != null){
+            for (const [key, value] of Object.entries(atom_positions)) {
+                let distanceX = x - value[0] - w_offset;
+                let distanceY = y - value[1] - h_offset;
+                let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+                let a = get_atomtype(key);
+                if (atom_counts(a) == 0) { continue; }
+                if (distance <= a.size) {
+
+                    if (click) {
+                        if (hovered_atom == a) { hovered_atom = null; }
+                        else { hovered_atom = a; }
+                    }
+                    else {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        else {
+            for (const [key, value] of Object.entries(atom_positions)) {
+                let a = get_atomtype(key);
+                let count = atom_counts(a);
+                let pos = [value[0]+w_offset, value[1]+h_offset];
+
+                if (hovered_atom == a) { drawCircle(pos[0], pos[1], 40, "#DFF")}
+
+                a.render(pos,count>0,BACKGROUND);
+
+                ctx.font = "30px Lexend";
+                ctx.fillStyle = "white";
+                ctx.lineWidth = 5;
+                ctx.textAlign = "center"
+                ctx.strokeStyle = BACKGROUND;
+                if (!METALS.includes(a)){
+                    if (CARDINALS.includes(a) && count%2 == 1) { ctx.fillStyle = "#FF5555"; }
+                    ctx.strokeText(count,pos[0]+25, pos[1]+40);
+                    ctx.fillText(count, pos[0]+25, pos[1]+40);
+                }
+            }
+        }
+
+        if (x != null) {return;}
+
+        if (showInfo){
+
+            ctx.fillStyle = "#222"
+            ctx.fillRect(0,1060,WIDTH,HEIGHT)
+
+            ctx.font = "20px Lexend";
+            ctx.fillStyle = "white";
+            ctx.lineWidth = 5;
+            ctx.textAlign = "center"
+
+            // Rendering the informational screen
+
+            ctx.fillText("Select a free marble, and then pick a matching marble to remove them both from the board.",WIDTH/2,1100)
+            ctx.fillText("A marble is free if it has 3 contiguous empty spaces next to it. Spaces off the board count as empty.", WIDTH/2, 1122)
+
+            let render_y = 1200
+
+            let left_pos = 110
+            let info_x = left_pos;
+            for (const atype of CARDINALS){
+                if (atype == SALT) {continue; }
+                atype.render([info_x,render_y])
+                atype.render([info_x,render_y+100])
+                ctx.fillText("+",info_x,render_y+56)
+                info_x += 80
+            }
+
+            ctx.fillText("The four cardinal elements match", left_pos+80, render_y+170)
+            ctx.fillText("with others of the same type.", left_pos+80, render_y+170+22)
+
+            info_x += 50
+            for (const atype of CARDINALS){
+                atype.render([info_x,render_y])
+                SALT.render([info_x,render_y+100])
+                ctx.fillText("+",info_x,render_y+56)
+                info_x += 80
+            }
+            ctx.fillText("Salt matches with any of the", left_pos+440, render_y+170)
+            ctx.fillText("cardinal elements, or with itself.", left_pos+440, render_y+170+22)
+
+            info_x += 50
+            VITAE.render([info_x, render_y])
+            MORS.render([info_x, render_y+100])
+            ctx.fillText("+",info_x,render_y+56)
+
+            ctx.fillText("Vitae and Mors will only", left_pos+780, render_y+170)
+            ctx.fillText("match with their opposite.", left_pos+780, render_y+170+22)
+
+
+            render_y += 280
+
+            QUINT.render([200, render_y])
+
+            ctx.fillText("+",150,render_y+15+6)
+            AIR.render([100, render_y+30])
+
+            ctx.fillText("+",180,render_y+42+6)
+            FIRE.render([160, render_y+85])
+
+            ctx.fillText("+",220,render_y+42+6)
+            WATER.render([240, render_y+85])
+
+            ctx.fillText("+",250,render_y+15+6)
+            EARTH.render([300, render_y+30])
+
+            ctx.fillText("Quintessence must match with", 200, render_y+170)
+            ctx.fillText("all four of the cardinals at once.", 200, render_y+170+22)
+
+            left_pos = 450
             info_x = left_pos
 
             for (const atype of METALS){
@@ -738,7 +1188,6 @@ const COLVAN = new Variant(
         }
 
 		// "unsolve" the board by using the move history in reverse to place marbles
-
 		let placedGold = false;
 		for (let m = 0; m < moveHistory.length; m++)
 		{
@@ -882,7 +1331,7 @@ const COLVAN = new Variant(
 
         if (showInfo){
 
-            ctx.fillStyle = "#333"
+            ctx.fillStyle = "#222"
             ctx.fillRect(0,1060,WIDTH,HEIGHT)
 
             ctx.font = "20px Lexend";
@@ -1275,7 +1724,7 @@ const PRODUCTION = new Variant(
 
         if (showInfo){
 
-            ctx.fillStyle = "#333"
+            ctx.fillStyle = "#222"
             ctx.fillRect(0,1060,WIDTH,HEIGHT)
 
             ctx.font = "20px Lexend";
@@ -1388,8 +1837,8 @@ const PRODUCTION = new Variant(
     board_string = PROD_BOARD_STRING,
 )
 
-const VARIANT_ORDER = [VANILLA, COLVAN, PRODUCTION]
-const VARIANT_LIST = {"Original": VANILLA, "House Colvan": COLVAN, "Production": PRODUCTION}
+const VARIANT_ORDER = [VANILLA, VANILLA_2, COLVAN, PRODUCTION]
+const VARIANT_LIST = {"Original": VANILLA, "Quintessence": VANILLA_2, "House Colvan": COLVAN, "Production": PRODUCTION}
 
 let myGameArea = {
     start : function() {
